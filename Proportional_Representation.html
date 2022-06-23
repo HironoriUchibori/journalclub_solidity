@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta http-equiv="content-type" charset="utf-8">
+</head>
+
+<body>
+	<div id="accounts"></div>
+	<h3>どの政党に投票しますか？</h3>
+	<label>プルダウンメニューで政党を選択し，投票ボタンを押してください
+		<select id="element" name="select_political_party">
+			<option value="s">---選択してください---</option>
+			<option value="A">A党</option>
+			<option value="B">B党</option>
+			<option value="C">C党</option>
+		</select>
+	</label>
+	<input type='button' name="button1" value="投票" onclick="doFunction()"></input>
+
+	<h3>各政党の現在の得票数</h3>
+	<div id="amount1"></div>
+	<div id="amount2"></div>
+	<div id="amount3"></div>
+	<input type='button' name="button2" value="投票終了・結果を見る" onclick="get()"></input>
+
+	<h3>当選者リスト</h3>
+	<table border="5">
+		<tr>
+			<th>当選者氏名</th>
+			<th>所属政党</th>
+		</tr>
+		<tr>
+			<th><div id="candidate1"></div></th>
+			<th><div id="party1"></th>
+		</tr>
+		<tr>
+			<th><div id="candidate2"></div></th>
+			<th><div id="party2"></th>
+		</tr>
+		<tr>
+			<th><div id="candidate3"></div></th>
+			<th><div id="party3"></th>
+		</tr>
+		<tr>
+			<th><div id="candidate4"></div></th>
+			<th><div id="party4"></th>
+		</tr>
+		<tr>
+			<th><div id="candidate5"></div></th>
+			<th><div id="party5"></th>
+		</tr>
+		<tr>
+			<th><div id="candidate6"></div></th>
+			<th><div id="party6"></th>
+		</tr>
+	</table>
+	<div id="candidate1"></div>
+	<div id="candidate2"></div>
+	<div id="candidate3"></div>
+	<div id="candidate4"></div>
+	<div id="candidate5"></div>
+	<div id="candidate6"></div>
+	<input type='button' name="button2" value="当選者を確認する" onclick="getList()"></input>
+
+	<script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+	<script src="https://code.jquery.com/jquery-3.4.0.min.js"></script>
+
+	<script>
+
+		const abi = [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_vote",
+						"type": "uint256"
+					}
+				],
+				"name": "vote",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "get_result",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "have_voted",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		]
+		const contractaddress = '0xF560368C4244F4472B1d4b532945ec70CADe9F7c';
+
+		load();
+
+		//メタマスクとコントラクトへの接続を実行する機能
+		async function load() {
+			await loadWeb3(); // メタマスクに接続する
+			window.contract = await loadContract(); // コントラクトに接続する
+			await get();
+		}
+
+		//メタマスクに接続する
+		async function loadWeb3() {
+			if (window.ethereum) {
+				window.web3 = new Web3(window.ethereum);
+				window.ethereum.enable();
+			} else {
+				document.write('Install <a href="https://metamask.io">METAMASK</a>')
+			}
+			const account = await getCurrentAccount();
+			$('#accounts').text('Your accounts: ' + account);
+		}
+
+		//コントラクトのインスタンスを作成
+		async function loadContract() {
+			return await new window.web3.eth.Contract(abi, contractaddress);
+		}
+
+		//利用者のメタマスクのウォレットアドレスを取得
+		async function getCurrentAccount() {
+			const accounts = await window.web3.eth.getAccounts();
+			return accounts[0];
+		}
+
+		//投票ボタンがクリックされたときに、voteを実行する
+		async function doFunction() {
+			const account = await getCurrentAccount();	//利用者のメタマスクのウォレットアドレスを取得
+			//var party = $('#select_political_party').val();	//政党名
+			let party = document.getElementById('element');
+			var input;
+			switch (party.value) {
+				case 'A':
+					input = 0;
+					break;
+				case 'B':
+					input = 1;
+					break;
+				case 'C':
+					input = 2;
+					break;
+				default:
+					break;
+			}
+			console.log(input);
+
+			const send = await window.contract.methods.vote(parseInt(input)).send({ from: account });
+		}
+		/*async function doFunction() {
+			const account = await getCurrentAccount(); //利用者のメタマスクのウォレットアドレスを取得
+			var input = $('#textBox1').val();
+			const send = await window.contract.methods.vote(parseInt(input)).send({ from: account });
+			console.log(send);
+		}*/
+
+		//更新ボタンがクリックされたときに，get_rusultを実行する
+		async function get() {
+			const result = await window.contract.methods.get_result().call();
+			console.log(result);
+			$('#amount1').text('A党の得票数: ' + result[0]);
+			$('#amount2').text('B党の得票数: ' + result[1]);
+			$('#amount3').text('C党の得票数: ' + result[2]);
+
+			//const partyList = await window.contract.methods.party_order().call()
+			//console.log(partyList)
+		}
+
+		//「当選者を確認する」ボタンがクリックされたときに，当選者リストを表示する．
+		async function getList() {
+			const result = await window.contract.methods.get_result().call();
+			var A_candidate = ['Aaron', 'Abel', 'Abraham'];
+			var B_candidate = ['Baldwin', 'Barnaby', 'Barney'];
+			var C_candidate = ['Calvin', 'Cameron', 'Carey'];
+			var number = [result[0], result[1], result[2]];
+			var party = ['A', 'B', 'C'];
+			var selectedList = Array(6);
+
+			for (var i = 0; i < 3; i++) {
+				for (var j = 0; j < 2; j++) {
+					if (number[j] < number[j + 1]) {
+						var tmp1 = number[j];
+						number[j] = number[j + 1];
+						number[j + 1] = tmp1;
+						var tmp2 = party[j];
+						party[j] = party[j + 1];
+						party[j + 1] = tmp2;
+					}
+				}
+			}
+
+			switch (party[0]) {
+				case 'A':
+					for (var i = 0; i < 3; i++) {
+						selectedList[i] = A_candidate[i];
+					}
+					if (party[1] == 'B') {
+						selectedList[3] = B_candidate[0];
+						selectedList[4] = B_candidate[1];
+						selectedList[5] = C_candidate[0]
+					} else {
+						selectedList[3] = C_candidate[0];
+						selectedList[4] = C_candidate[1];
+						selectedList[5] = B_candidate[0]
+					}
+					break;
+				case 'B':
+					for (var i = 0; i < 3; i++) {
+						selectedList[i] = B_candidate[i];
+					}
+					if (party[1] == 'A') {
+						selectedList[3] = A_candidate[0];
+						selectedList[4] = A_candidate[1];
+						selectedList[5] = C_candidate[0]
+					} else {
+						selectedList[3] = C_candidate[0];
+						selectedList[4] = C_candidate[1];
+						selectedList[5] = A_candidate[0]
+					}
+					break;
+				case 'C':
+					for (var i = 0; i < 3; i++) {
+						selectedList[i] = C_candidate[i];
+					}
+					if (party[1] == 'A') {
+						selectedList[3] = A_candidate[0];
+						selectedList[4] = A_candidate[1];
+						selectedList[5] = B_candidate[0]
+					} else {
+						selectedList[3] = B_candidate[0];
+						selectedList[4] = B_candidate[1];
+						selectedList[5] = A_candidate[0]
+					}
+					break;
+				default:
+					break;
+			}
+
+			$('#candidate1').text(selectedList[0]);
+			$('#candidate2').text(selectedList[1]);
+			$('#candidate3').text(selectedList[2]);
+			$('#candidate4').text(selectedList[3]);
+			$('#candidate5').text(selectedList[4]);
+			$('#candidate6').text(selectedList[5]);
+			$('#party1').text(party[0] + '党');
+			$('#party2').text(party[0] + '党');
+			$('#party3').text(party[0] + '党');
+			$('#party4').text(party[1] + '党');
+			$('#party5').text(party[1] + '党');
+			$('#party6').text(party[2] + '党');
+		}
+
+	</script>
+</body>
+
+</html>
